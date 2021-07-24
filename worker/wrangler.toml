@@ -1,0 +1,11 @@
+name = "pixifull"
+type = "javascript"
+zone_id = ""
+account_id = "a6af34d2e2edc21f39427101929e4019"
+route = ""
+workers_dev = true
+
+[build]
+command = "npm install && npm run build"
+[build.upload]
+format = "service-worker"
