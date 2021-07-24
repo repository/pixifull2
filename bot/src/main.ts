@@ -1,10 +1,11 @@
 import cheerio from "cheerio";
 import dotenv from "dotenv";
-import Eris, { EmbedOptions } from "eris";
+import Eris from "eris";
+import he from "he";
 import fetch from "node-fetch";
 import { URL } from "url";
 
-import { Metadata } from "./metadata";
+import Metadata from "./metadata";
 
 const HTML_BR_TAG_REGEX = /<br\s*[\\/]?>/gi;
 const HTML_TAG_REGEX = /(<([^>]+)>)/gi;
@@ -30,7 +31,7 @@ function getProxiedUrl(url: string) {
 }
 
 function formatDescription(description: string) {
-  description = description.replaceAll(HTML_BR_TAG_REGEX, "\n").replaceAll(HTML_TAG_REGEX, "");
+  description = he.decode(description.replaceAll(HTML_BR_TAG_REGEX, "\n").replaceAll(HTML_TAG_REGEX, ""));
 
   let formatted = "";
   let overflow = false;
@@ -91,7 +92,7 @@ async function generateEmbed(id: string) {
 
   const user = metadata.user[illust.userId];
 
-  const embed: EmbedOptions = {
+  const embed: Eris.EmbedOptions = {
     color: 0x0096fa,
     title: illust.title,
     description: formatDescription(illust.description),

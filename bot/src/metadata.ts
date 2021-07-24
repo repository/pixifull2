@@ -1,4 +1,4 @@
-export interface Metadata {
+export default interface Metadata {
   timestamp: Date;
   illust: { [key: string]: Illust };
   user: { [key: string]: User };
