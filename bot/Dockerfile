@@ -7,14 +7,12 @@ RUN jq '{ dependencies, devDependencies, scripts }' < /tmp/package.json > /tmp/p
 # build
 FROM node:16.5.0-alpine3.13 AS builder
 WORKDIR /app
-RUN apk update && apk add --no-cache curl && \
-  curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | sh -s -- -b /usr/local/bin
 COPY tsconfig.json ./
 COPY --from=prep /tmp/prepared.json ./package.json
 COPY package-lock.json ./
 RUN npm ci
 COPY src ./src
-RUN npm run build && npm prune --production && /usr/local/bin/node-prune
+RUN npm run build && npm prune --production
 
 # start
 FROM node:16.5.0-alpine3.13 AS runner
