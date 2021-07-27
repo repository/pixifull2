@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import Eris from "eris";
 import he from "he";
 import fetch from "node-fetch";
+import truncate from "truncate";
 import { URL } from "url";
 
 import Metadata from "./metadata";
@@ -31,40 +32,10 @@ function getProxiedUrl(url: string) {
 }
 
 function formatDescription(description: string) {
-  description = he.decode(description.replaceAll(HTML_BR_TAG_REGEX, "\n").replaceAll(HTML_TAG_REGEX, ""));
-
-  let formatted = "";
-  let overflow = false;
-  const lines = description.split("\n");
-  if (lines.length > 3) {
-    for (const line of lines) {
-      if ((formatted + line).length > DESCRIPTION_MAX_LENGTH) {
-        overflow = true;
-        break;
-      } else {
-        formatted += line + "\n";
-      }
-
-      if (formatted.split("\n").length < 3 && overflow) {
-        formatted = "";
-        for (const line of lines) {
-          if ((formatted + line).length > DESCRIPTION_MAX_LENGTH - 3) {
-            formatted += line.substr(0, DESCRIPTION_MAX_LENGTH - 3 - formatted.length);
-            break;
-          } else {
-            formatted += line + "\n";
-          }
-        }
-      }
-    }
-  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
-    formatted = description.substr(0, DESCRIPTION_MAX_LENGTH - 3);
-    overflow = true;
-  } else {
-    return description;
-  }
-
-  return formatted;
+  return truncate(
+    he.decode(description.replaceAll(HTML_BR_TAG_REGEX, "\n").replaceAll(HTML_TAG_REGEX, "")),
+    DESCRIPTION_MAX_LENGTH,
+  );
 }
 
 async function generateEmbed(id: string) {
