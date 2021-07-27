@@ -6,7 +6,7 @@ import fetch from "node-fetch";
 import truncate from "truncate";
 import { URL } from "url";
 
-import Metadata from "./metadata";
+import Metadata, { Urls } from "./metadata";
 
 const HTML_BR_TAG_REGEX = /<br\s*[\\/]?>/gi;
 const HTML_TAG_REGEX = /(<([^>]+)>)/gi;
@@ -16,6 +16,7 @@ const PIXIV_ARTWORK_ENDPOINT = "https://www.pixiv.net/artworks/";
 const PIXIV_USER_ENDPOINT = "https://www.pixiv.net/users/";
 const PIXIV_PROXY_ENDPONT = "https://pixifull.xcvr48.workers.dev/";
 const PIXIV_METADATA_SELECTOR = "#meta-preload-data";
+const PIXIV_HEADERS = { Referer: "http://www.pixiv.net/" };
 const DESCRIPTION_MAX_LENGTH = 350;
 
 dotenv.config();
@@ -35,7 +36,23 @@ function formatDescription(description: string) {
   return truncate(
     he.decode(description.replaceAll(HTML_BR_TAG_REGEX, "\n").replaceAll(HTML_TAG_REGEX, "")),
     DESCRIPTION_MAX_LENGTH,
+    { ellipsis: " …" },
   );
+}
+
+async function findSuitableImage(urls: Urls): Promise<keyof Urls> {
+  const response = await fetch(urls.original, { method: "HEAD", headers: PIXIV_HEADERS });
+  if (!response.ok) {
+    return "regular";
+  }
+
+  const length = response.headers.get("content-length");
+
+  if (length && parseInt(length) > 10 * 1024 * 1024) {
+    return "regular";
+  }
+
+  return "original";
 }
 
 async function generateEmbed(id: string) {
@@ -63,6 +80,8 @@ async function generateEmbed(id: string) {
 
   const user = metadata.user[illust.userId];
 
+  const imageQuality = await findSuitableImage(illust.urls);
+
   const embed: Eris.EmbedOptions = {
     color: 0x0096fa,
     title: illust.title,
@@ -70,12 +89,22 @@ async function generateEmbed(id: string) {
     url: PIXIV_ARTWORK_ENDPOINT + id,
     timestamp: illust.uploadDate,
     image: {
-      url: getProxiedUrl(illust.urls.original),
+      url: getProxiedUrl(illust.urls[imageQuality]),
     },
     fields: [
       { name: "Views", value: illust.viewCount.toLocaleString(), inline: true },
       { name: "Bookmarks", value: illust.bookmarkCount.toLocaleString(), inline: true },
       { name: "Likes", value: illust.likeCount.toLocaleString(), inline: true },
+      ...(imageQuality !== "original"
+        ? [
+            {
+              name: "Image Quality",
+              value: `Using ${imageQuality} due to size, [click here for original](${getProxiedUrl(
+                illust.urls.original,
+              )})`,
+            },
+          ]
+        : []),
     ],
     ...(user && {
       author: {
